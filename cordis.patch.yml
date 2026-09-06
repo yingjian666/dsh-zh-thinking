@@ -1,0 +1,7 @@
+# dsh-zh-thinking bundle patch: insert the host plugin row into the web
+# profile roster. Applied as a profile bundle layer (dsh.bundle.patch).
+# The node half (exports '.') registers a system-prompt section so every
+# agent request carries the Chinese-thinking instruction. No browser half.
+- insert:
+    - id: zh-thinking
+      name: 'dsh-zh-thinking'

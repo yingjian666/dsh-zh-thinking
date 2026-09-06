@@ -1,0 +1,49 @@
+{
+  "name": "dsh-zh-thinking",
+  "version": "0.1.0",
+  "description": "DSH host plugin: force the agent's chain-of-thought / reasoning / planning / tool-invocation deliberation to stay in Simplified Chinese — 让 Agent 的内部思考（思维链）始终使用简体中文。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.js.map",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "plugin",
+    "chinese",
+    "chain-of-thought",
+    "thinking",
+    "zh",
+    "中文",
+    "思维链"
+  ],
+  "author": "yingjian666",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yingjian666/dsh-zh-thinking.git"
+  },
+  "homepage": "https://github.com/yingjian666/dsh-zh-thinking#readme",
+  "bugs": {
+    "url": "https://github.com/yingjian666/dsh-zh-thinking/issues"
+  },
+  "license": "MIT"
+}
