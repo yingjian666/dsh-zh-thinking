@@ -27,14 +27,20 @@
   ],
   "keywords": [
     "deepseek-harness",
+    "deepseek-harness-plugin",
     "dsh",
-    "plugin",
+    "dsh-plugin",
     "chinese",
+    "zh",
+    "simplified-chinese",
+    "chinese-thinking",
     "chain-of-thought",
     "thinking",
-    "zh",
+    "language-control",
     "中文",
-    "思维链"
+    "中文思考",
+    "思维链",
+    "简体中文"
   ],
   "author": "yingjian666",
   "repository": {
