@@ -1,5 +1,7 @@
 # dsh-zh-thinking
 
+⭐ **如果这个插件帮到了你，欢迎点个 [Star](https://github.com/yingjian666/dsh-zh-thinking) 支持一下** —— 一个星标就是对作者最直接的鼓励。
+
 让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 里 Agent 的**内部思考过程**——思维链（chain-of-thought）、逐步规划、工具调用前后的推理、自我审查——始终使用**简体中文**的宿主插件（host plugin）。
 
 > **声明**：本项目参考 / 灵感来自 [wodongx123/dsh-language-control](https://github.com/wodongx123/dsh-language-control)（其 npm 包为 `@deepseek-ai/dsh-language-control`），在其「让 Agent 用中文思考」的思路基础上**独立重写**，并解决了本地目录挂载时的依赖加载问题。两者的关系与差异见下文「[与原插件的关系](#与原插件的关系)」。
