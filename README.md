@@ -8,6 +8,19 @@
 
 ---
 
+## 快速安装（DSH Desktop 4.1+）
+
+**设置 → 插件 → 从其他来源安装**：
+
+| 字段 | 填什么 |
+|---|---|
+| 插件来源 | `github:yingjian666/dsh-zh-thinking` |
+| 高级选项 | ✅ 勾选「这是来自本地、Git 或其他外部来源的高级插件」 |
+
+确认该来源为**全权访问** → 安装 → **重启 DSH**。
+
+不需要 npm 账号，也不需要手工建目录链接。细节与离线方式见[安装](#安装)。
+
 ## 为什么会有这个插件
 
 DeepSeek 这类推理模型，其「思考」由同一份系统提示词（system prompt）驱动。当工具返回英文内容（例如网页抓取、文档、报错信息）时，Agent 的思维链容易发生**语言漂移（language drift）**——思考逐步切到英文，导致后续推理与最终回答的语言不稳定。
@@ -21,12 +34,12 @@ DeepSeek 这类推理模型，其「思考」由同一份系统提示词（syste
 | 注入机制 | `systemPrompt.section()`，order `-200`（最顶部） | `systemPrompt.section()`，order `20`（persona 之后） |
 | 外部依赖 | 有 peer 依赖（`@deepseek-ai/cordis`、`@deepseek-ai/dsh-host-webserver`） | **零外部依赖**，只依赖 cordis 运行时注入的 `ctx` |
 | 设置面板 | 有（HTTP 路由 + 客户端注入可视化面板） | 无（极简，见[配置](#配置)） |
-| 安装方式 | 必须经 npm（`dsh plugin add @deepseek-ai/dsh-language-control`） | 任意目录 `link:` 本地挂载或 GitHub 安装即可，无需发布 npm（DSH 4.1+ 的安装注意事项见[兼容性](#兼容性)） |
+| 安装方式 | 必须经 npm（`dsh plugin add @deepseek-ai/dsh-language-control`） | GitHub / 本地目录 / `.tgz` 均可，**无需发布 npm** |
 
 **相对原插件主要优化 / 解决的问题：**
 
 1. **零外部依赖，规避「本地目录挂载崩溃」**。当插件通过 `link:` 从 profile / app 的 `node_modules` 树之外的目录挂载时，Node 无法解析插件自身 `import` 的 npm 包（如 `schemastery`），会导致整棵插件树加载失败（fatal plugin-tree load failure）。本插件不 `import` 任何第三方包，只使用宿主运行时提供的服务，因此从任意路径挂载都能正常加载。
-2. **不依赖 npm 发布**。原插件必须先从 npm 安装（且易因包名带不带 `@deepseek-ai/` scope 而装错）；本插件 `git clone` 后即可本地 `link:` 挂载。
+2. **不依赖 npm 发布**。原插件必须先从 npm 安装（且易因包名带不带 `@deepseek-ai/` scope 而装错）；本插件 `git clone` 后即可本地挂载，或直接从 GitHub 安装。
 3. **极简、易读易审**。单文件、几十行代码，无 HTTP 路由、无客户端面板，行为一目了然。
 
 ## 功能特性
@@ -67,11 +80,41 @@ Desktop 4.1 的兼容性诊断（`desktop-plugins.lock.json` / 启动日志的 `
 
 ## 安装
 
-本插件未发布到 npm，请用「本地目录」或「GitHub」方式安装。
+插件未发布到 npm。下面方式 1 / 2 都**不需要 npm 账号**，也不用手工建目录链接。
 
-### DSH Desktop 4.1+ / 内核 0.1.6-alpha.1
+装完都要**重启 DSH**（宿主插件在启动时挂载），然后新开一个普通「标准模式」会话验证：思考块应全程简体中文。
 
-新版 Desktop 把用户主目录从 `~/.dsh` 迁移到了 `~/.dsh-community`，并且**旧插件恢复只接受精确 npm 版本或带 commit 的 GitHub 来源**：`link:` 本地目录不会自动恢复，插件会在恢复列表里显示为 `failed`（`failureCategory: legacy-source-unsupported`，错误「旧插件来源不是精确 NPM 版本或受支持的 GitHub 来源」）。也就是说，这类插件在升级后**掉线是迁移策略导致的，不是代码不兼容**，重新挂载即可。
+> **在「梁神模式」等两阶段锚定 preset 下**：首轮（锚定阶段）`tool-bootstrap` 会把提示词过滤成只剩 persona 段，本插件的段落同样被过滤，晋升（promotion）后自动恢复——这是 preset 的锚定行为，不是插件失效。用普通「标准模式」会话验证即可。
+
+### 1. DSH Desktop 4.1+：一条 spec + 一个勾选（推荐）
+
+**设置 → 插件 → 从其他来源安装**：
+
+| 字段 | 填什么 |
+|---|---|
+| 插件来源 | `github:yingjian666/dsh-zh-thinking` |
+| 高级选项 | ✅ 勾选「这是来自本地、Git 或其他外部来源的高级插件」 |
+
+按提示确认该来源为**全权访问**（外部代码由你本人审计），确认安装，然后重启 DSH。
+
+- **那个勾选是必需的**：不勾时走的是 npm registry 通道，只认 `包名@版本`；勾上才走 full-access 外部来源通道，它接受 `github:` / `gitlab:` / `git+https:` / 本地目录 / `.tgz` / 裸包名。
+- 想锁定到确定的版本，把 commit 写进 spec：
+  `github:yingjian666/dsh-zh-thinking#584a1c8970a47f3843d3aac3ba5cb63d10cec3fe`
+  带 40 位 commit 的形式还能在 DSH 下次迁移主目录时被「旧插件恢复」**自动接回**；裸 `owner/repo` 不行。
+- 这一步需要能访问 GitHub；网络不通请用方式 2。
+
+### 2. 离线 / 连不上 GitHub：本地 `.tgz` 或目录
+
+`package.json` 的 `files` 白名单决定产物内容（`lib/`、`cordis.patch.yml`、README、LICENSE、package.json；测试不会被打包）：
+
+```sh
+npm pack          # 或使用随 DSH 附带的 pnpm pack
+# → dsh-zh-thinking-0.1.1.tgz
+```
+
+在**设置 → 插件 → 从其他来源安装**里填这个 `.tgz` 的绝对路径（**同样要勾选那个复选框**），或者直接填克隆下来的仓库目录。这条路完全不碰 npm 服务器。
+
+### 3. 其他 profile（`web` / `tui` / 自建）：用 CLI
 
 `desktop` profile 由 Electron 独占管理，官方 CLI 会直接拒绝：
 
@@ -79,32 +122,29 @@ Desktop 4.1 的兼容性诊断（`desktop-plugins.lock.json` / 启动日志的 `
 error: profile "desktop" is managed exclusively by the Electron application
 ```
 
-所以 Desktop 用户请走 GUI 重新安装：
-
-1. 打开 **设置 → 插件 → 从其他来源安装**；
-2. 来源填本仓库目录（如 `H:\个人聊天文件\dsh-zh-thinking`）或先打成 `.tgz`；
-3. 按提示确认该来源为**全权访问**（本地代码由你本人审计），确认安装；
-4. **重启 DSH**（宿主插件在启动时挂载）。
-
-Desktop 内置「插件市场」通道只接受 npm 包（`name@version`），本地目录 / GitHub 不在其中。
-
-非 `desktop` 的 profile（`web` / `tui` / 自建 profile）才可以用 CLI：
+其余 profile 可以照常：
 
 ```sh
-# 本地目录
-dsh plugin --profile <name> add link:<克隆后的绝对路径>
-
-# 或 GitHub（本仓库已提交可直接加载的 lib/，无需构建）
 dsh plugin --profile <name> add github:yingjian666/dsh-zh-thinking
+dsh plugin --profile <name> add link:<克隆后的绝对路径>
 ```
 
 `dsh plugin` 是 pnpm 的薄封装：它在 profile 目录里执行安装，并把声明了 `dsh.bundle` 的依赖自动追加到 `dsh.profile.bundles`。
 
 > ⚠️ Windows 上路径含中文或空格时，`dsh plugin ... add link:<路径>` 会因为中间经过一次 `cmd.exe` 解析而在 profile 的 `package.json` 里记成乱码 spec（`node_modules` 链接本身通常是对的）。遇到这种情况请改用 GUI 通道。
 
-启用后**重载 / 重启 DSH**。随后新开一段需要思考的对话，观察思考块是否全程中文即可验证。
+### 为什么「从哪装」很重要
 
-> **在「梁神模式」等两阶段锚定 preset 下**：首轮（锚定阶段）`tool-bootstrap` 会把提示词过滤成只剩 persona 段，本插件的段落同样会被过滤掉，晋升（promotion）后自动恢复——这是 preset 的锚定行为，不是插件失效。用普通「标准模式」会话即可直接验证。
+DSH Desktop 4.0 → 4.1 把用户主目录从 `~/.dsh` 迁移到了 `~/.dsh-community`。迁移时的「旧插件恢复」只接受**精确 npm 版本**或**带 commit 的 GitHub 来源**——因为自动恢复必须能仅凭一个 spec 字符串把内容重新取回来：
+
+| 安装来源 | 要 npm 账号 | 要联网 | DSH 迁移主目录时 |
+|---|---|---|---|
+| `github:…#<40 位 commit>` | ❌ | ✅ GitHub | ✅ 自动接回 |
+| 本地目录 `link:` | ❌ | ❌ | ❌ 掉线，需重装 |
+| 本地 `.tgz` | ❌ | ❌ | ❌ 掉线，需重装 |
+| `包名@版本`（npm） | ✅ | ✅ registry | ✅ 自动接回 |
+
+本地目录 / `.tgz` 装的插件在迁移后会被标记为 `failed`（`failureCategory: legacy-source-unsupported`，错误「旧插件来源不是精确 NPM 版本或受支持的 GitHub 来源」）——那是**来源不可寻址**，不是插件代码不兼容。
 
 ### 旧版 DSH（3.x 及更早）
 
