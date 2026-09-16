@@ -21,7 +21,7 @@ DeepSeek 这类推理模型，其「思考」由同一份系统提示词（syste
 | 注入机制 | `systemPrompt.section()`，order `-200`（最顶部） | `systemPrompt.section()`，order `20`（persona 之后） |
 | 外部依赖 | 有 peer 依赖（`@deepseek-ai/cordis`、`@deepseek-ai/dsh-host-webserver`） | **零外部依赖**，只依赖 cordis 运行时注入的 `ctx` |
 | 设置面板 | 有（HTTP 路由 + 客户端注入可视化面板） | 无（极简，见[配置](#配置)） |
-| 安装方式 | 必须经 npm（`dsh plugin add @deepseek-ai/dsh-language-control`） | 任意目录 `link:` 本地挂载即可，无需发布 npm |
+| 安装方式 | 必须经 npm（`dsh plugin add @deepseek-ai/dsh-language-control`） | 任意目录 `link:` 本地挂载或 GitHub 安装即可，无需发布 npm（DSH 4.1+ 的安装注意事项见[兼容性](#兼容性)） |
 
 **相对原插件主要优化 / 解决的问题：**
 
@@ -36,21 +36,79 @@ DeepSeek 这类推理模型，其「思考」由同一份系统提示词（syste
 - 生命周期自动回收：插件卸载 / 上下文停止时干净地移除注册的 section
 - 零依赖、零配置、即装即用
 
-## 安装
+## 兼容性
 
-本插件未发布到 npm，请用「本地目录」方式安装。
+| DSH 内核（`@deepseek-ai/dsh-system-prompt`） | 状态 |
+|---|---|
+| `0.1.1-rc.1` … `0.1.5.x` | 兼容（最初的目标版本） |
+| `0.1.6-alpha.1`（DSH Desktop 4.1.0） | **兼容，已在真实内核上实测** |
+
+`section({ name, order, text })` 的契约在 `0.1.6-alpha.1` 上没有变化；`package.json` 的 `peerDependencies` 与 `dsh.compatibility.runtime` 已声明为 `>=0.1.1-rc.1 <0.2.0`。仓库自带一个真实内核冒烟测试：
 
 ```sh
-# 1. 克隆仓库
-git clone https://github.com/yingjian666/dsh-zh-thinking.git
-
-# 2. 以本地目录方式挂载（把 <路径> 换成克隆后的绝对路径）
-dsh plugin --profile desktop add link:<克隆后的绝对路径>
+node test/kernel-smoke.mjs "<DSH 的 node_modules 绝对路径>"
+# Windows 默认值：C:\Program Files\DeepSeek Harness Desktop\resources\app.asar.unpacked\node_modules
 ```
 
-或在 GUI 的 Plugin Manager 里选择「从本地目录 / 本地文件夹添加」，指向仓库目录。
+它会加载真实的 `@deepseek-ai/cordis` + `@deepseek-ai/dsh-system-prompt`，挂载本插件并断言 `language:zh-thinking` 段出现在 `assemble()` 结果中。
 
-启用后**重载 / 重启 DSH**（宿主插件在启动时挂载）。随后新开一段需要思考的对话，观察思考块是否全程中文即可验证。
+### 为什么 peer 依赖标了 `optional`
+
+Desktop 4.1 的兼容性诊断（`desktop-plugins.lock.json` / 启动日志的 `[plugins] compatibility diagnostic`）会用**应用侧**的模块锚点去解析插件的 `peerDependencies`。`@deepseek-ai/cordis`、`@deepseek-ai/dsh-system-prompt` 这类随 Desktop 一起打包的核心包在它的解析链上取不到版本，于是只要把它们声明成**必需** peer，就会被判成：
+
+```json
+{ "status": "incompatible", "reasons": [
+  { "code": "peer-missing", "subject": "@deepseek-ai/cordis", "required": "^4.0.1" },
+  { "code": "peer-missing", "subject": "@deepseek-ai/dsh-system-prompt", "required": "^0.1.1-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1" }
+] }
+```
+
+标成 `optional` 后：解析得到版本时仍按 semver 范围判定；解析不到时跳过该项，兼容性证据改由 `dsh.compatibility.runtime` 提供（本插件声明为 `>=0.1.1-rc.1 <0.2.0`，对 `0.1.6-alpha.1` 判定通过）。插件真正的运行时契约由 cordis 的 `inject = ["systemPrompt"]` 强制，不会因为标了 optional 而失效。
+
+## 安装
+
+本插件未发布到 npm，请用「本地目录」或「GitHub」方式安装。
+
+### DSH Desktop 4.1+ / 内核 0.1.6-alpha.1
+
+新版 Desktop 把用户主目录从 `~/.dsh` 迁移到了 `~/.dsh-community`，并且**旧插件恢复只接受精确 npm 版本或带 commit 的 GitHub 来源**：`link:` 本地目录不会自动恢复，插件会在恢复列表里显示为 `failed`（`failureCategory: legacy-source-unsupported`，错误「旧插件来源不是精确 NPM 版本或受支持的 GitHub 来源」）。也就是说，这类插件在升级后**掉线是迁移策略导致的，不是代码不兼容**，重新挂载即可。
+
+`desktop` profile 由 Electron 独占管理，官方 CLI 会直接拒绝：
+
+```text
+error: profile "desktop" is managed exclusively by the Electron application
+```
+
+所以 Desktop 用户请走 GUI 重新安装：
+
+1. 打开 **设置 → 插件 → 从其他来源安装**；
+2. 来源填本仓库目录（如 `H:\个人聊天文件\dsh-zh-thinking`）或先打成 `.tgz`；
+3. 按提示确认该来源为**全权访问**（本地代码由你本人审计），确认安装；
+4. **重启 DSH**（宿主插件在启动时挂载）。
+
+Desktop 内置「插件市场」通道只接受 npm 包（`name@version`），本地目录 / GitHub 不在其中。
+
+非 `desktop` 的 profile（`web` / `tui` / 自建 profile）才可以用 CLI：
+
+```sh
+# 本地目录
+dsh plugin --profile <name> add link:<克隆后的绝对路径>
+
+# 或 GitHub（本仓库已提交可直接加载的 lib/，无需构建）
+dsh plugin --profile <name> add github:yingjian666/dsh-zh-thinking
+```
+
+`dsh plugin` 是 pnpm 的薄封装：它在 profile 目录里执行安装，并把声明了 `dsh.bundle` 的依赖自动追加到 `dsh.profile.bundles`。
+
+> ⚠️ Windows 上路径含中文或空格时，`dsh plugin ... add link:<路径>` 会因为中间经过一次 `cmd.exe` 解析而在 profile 的 `package.json` 里记成乱码 spec（`node_modules` 链接本身通常是对的）。遇到这种情况请改用 GUI 通道。
+
+启用后**重载 / 重启 DSH**。随后新开一段需要思考的对话，观察思考块是否全程中文即可验证。
+
+> **在「梁神模式」等两阶段锚定 preset 下**：首轮（锚定阶段）`tool-bootstrap` 会把提示词过滤成只剩 persona 段，本插件的段落同样会被过滤掉，晋升（promotion）后自动恢复——这是 preset 的锚定行为，不是插件失效。用普通「标准模式」会话即可直接验证。
+
+### 旧版 DSH（3.x 及更早）
+
+在 GUI 的 Plugin Manager 里选择「从本地目录 / 本地文件夹添加」，指向仓库目录即可。
 
 ## 工作原理
 
