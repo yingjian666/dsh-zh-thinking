@@ -19,7 +19,9 @@
 
 确认该来源为**全权访问** → 安装 → **重启 DSH**。
 
-不需要 npm 账号，也不需要手工建目录链接。细节与离线方式见[安装](#安装)。
+不需要 npm 账号，也不需要手工建目录链接。
+
+> 连不上 GitHub？直接下载[打包好的 `.tgz`](https://github.com/yingjian666/dsh-zh-thinking/releases/latest) 再填文件路径即可（**同样要勾选那个复选框**）。细节见[安装](#安装)。
 
 ## 为什么会有这个插件
 
@@ -103,16 +105,22 @@ Desktop 4.1 的兼容性诊断（`desktop-plugins.lock.json` / 启动日志的 `
   带 40 位 commit 的形式还能在 DSH 下次迁移主目录时被「旧插件恢复」**自动接回**；裸 `owner/repo` 不行。
 - 这一步需要能访问 GitHub；网络不通请用方式 2。
 
-### 2. 离线 / 连不上 GitHub：本地 `.tgz` 或目录
+### 2. 离线 / 连不上 GitHub：下载打包好的 `.tgz`
 
-`package.json` 的 `files` 白名单决定产物内容（`lib/`、`cordis.patch.yml`、README、LICENSE、package.json；测试不会被打包）：
+不想装 git、也不想 clone 仓库的话，直接下载打好的包：
+
+**https://github.com/yingjian666/dsh-zh-thinking/releases/latest/download/dsh-zh-thinking-0.1.1.tgz**
+
+然后：**设置 → 插件 → 从其他来源安装** → 填这个 `.tgz` 的**绝对路径** → ✅ 勾选那个复选框 → 确认全权访问 → 重启 DSH。这条路完全不碰 npm 服务器。
+
+`package.json` 的 `files` 白名单决定产物内容（`lib/`、`cordis.patch.yml`、README、LICENSE、package.json；测试不会被打包），所以想自己从源码打包也可以：
 
 ```sh
 npm pack          # 或使用随 DSH 附带的 pnpm pack
 # → dsh-zh-thinking-0.1.1.tgz
 ```
 
-在**设置 → 插件 → 从其他来源安装**里填这个 `.tgz` 的绝对路径（**同样要勾选那个复选框**），或者直接填克隆下来的仓库目录。这条路完全不碰 npm 服务器。
+> 每个 Release 页面附有该 `.tgz` 的 SHA-256；下载后可用 `Get-FileHash <文件> -Algorithm SHA256`（Windows）或 `shasum -a 256 <文件>` 校验。
 
 ### 3. 其他 profile（`web` / `tui` / 自建）：用 CLI
 
