@@ -155,7 +155,7 @@ Desktop 4.1 的兼容性诊断会用**应用侧**的模块锚点去解析插件�
 
 不想装 git、也不想 clone 仓库的话，直接下载打好的包：
 
-**https://github.com/yingjian666/dsh-zh-thinking/releases/latest/download/dsh-zh-thinking-0.1.1.tgz**
+**https://github.com/yingjian666/dsh-zh-thinking/releases/latest/download/dsh-zh-thinking-0.1.2.tgz**
 
 然后：**设置 → 插件 → 从其他来源安装** → 填这个 `.tgz` 的**绝对路径** → ✅ 勾选那个复选框 → 确认全权访问 → 重启 DSH。这条路完全不碰 npm 服务器。
 
@@ -163,7 +163,7 @@ Desktop 4.1 的兼容性诊断会用**应用侧**的模块锚点去解析插件�
 
 ```sh
 npm pack          # 或使用随 DSH 附带的 pnpm pack
-# → dsh-zh-thinking-0.1.1.tgz
+# → dsh-zh-thinking-0.1.2.tgz
 ```
 
 > 每个 Release 页面附有该 `.tgz` 的 SHA-256；下载后可用 `Get-FileHash <文件> -Algorithm SHA256`（Windows）或 `shasum -a 256 <文件>` 校验。
