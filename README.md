@@ -5,6 +5,9 @@
 > **项目状态**：这是一次个人学习性质的尝试，作者**不承诺持续维护**。
 > 如果将来 DSH 内核升级导致它失效，欢迎自行 fork 修改——
 > 逻辑只有一个文件 `lib/index.js`，做的事就是往系统提示词里注册一段「用简体中文思考」的要求。
+>
+> 📝 **历次「内核升级导致失效」的原因与修法都记在 [CHANGELOG.md](./CHANGELOG.md)**，
+> 包括 0.2.0 那次被静默禁用的完整分析 —— 如果你的插件也遇到同样症状，可以直接对照。
 
 让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 里 Agent 的**内部思考过程**——思维链（chain-of-thought）、逐步规划、工具调用前后的推理、自我审查——始终使用**简体中文**的宿主插件（host plugin）。
 
