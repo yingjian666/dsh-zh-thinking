@@ -60,9 +60,44 @@ DeepSeek 这类推理模型，其「思考」由同一份系统提示词（syste
 | DSH 内核（`@deepseek-ai/dsh-system-prompt`） | 状态 |
 |---|---|
 | `0.1.1-rc.1` … `0.1.5.x` | 兼容（最初的目标版本） |
-| `0.1.6-alpha.1`（DSH Desktop 4.1.0） | **兼容，已在真实内核上实测** |
+| `0.1.6-alpha.1` / `0.1.6-alpha.2` | **兼容，已在真实内核上实测** |
+| **`0.2.0-rc.2`（Desktop 5.0.0）** | **兼容，已在真实内核上实测** |
 
-`section({ name, order, text })` 的契约在 `0.1.6-alpha.1` 上没有变化；`package.json` 的 `peerDependencies` 与 `dsh.compatibility.runtime` 已声明为 `>=0.1.1-rc.1 <0.2.0`。仓库自带一个真实内核冒烟测试：
+`section({ name, order, text })` 的契约从 `0.1.1-rc.1` 一路到 `0.2.0-rc.2` **没有变化过**，所以插件的实现代码从来没有因为内核升级改过。真正需要维护的只有 `package.json` 里的两个版本声明：
+
+- `peerDependencies["@deepseek-ai/dsh-system-prompt"]` → `">=0.1.6-alpha.1"`（**只写下限，不写上界**）
+- `dsh.compatibility.runtime` → `">=0.1.1-rc.1 <0.3.0-0"`
+
+### ⚠️ 为什么 peer 范围千万别写 `^`
+
+这是 0.2.0 上真实踩到的坑：
+
+```jsonc
+// ✗ 这样写，内核一升到 0.2.0 的预发布版，插件就会被静默禁用
+"@deepseek-ai/dsh-system-prompt": "^0.1.6-alpha.1"
+```
+
+`^0.1.6-alpha.1` 在 semver 里展开成的上界**不是** `<0.2.0`，而是 **`<0.2.0-0`** —— 那个 `-0` 把 `0.2.0-rc.1`、`0.2.0-rc.2` 这类**所有 `0.2.0` 的预发布版全部排除**掉了。
+
+而 DSH 0.2.0 新增了一道 **profile 兼容性预检**（`dsh-app-boot` 的 `prepareProfileEntries`）：加载 profile 之前逐行检查，`peerDependencies` 里任何 `@deepseek-ai/dsh-*` 范围不满足当前 runtime 的**行会被直接 `disabled = true`**，只在 stderr 打一行 `disabling profile plugin ...`。结果就是——**插件装得好好的、界面还显示 compatible，但就是不生效**。
+
+而且这里有**两套判定口径不一致**，这正是它难排查的原因：
+
+| 判定方 | 依据 | 对 `0.2.0-rc.2` 的结论 |
+|---|---|---|
+| Desktop 界面 / `desktop-plugins.lock.json` | `dsh.compatibility.runtime`，上界 `<0.2.0`（无 `-0`） | compatible |
+| **运行时预检（真正决定是否加载）** | `peerDependencies` 的 range | **incompatible → 静默禁用** |
+
+还有两个容易踩的点：
+
+- `peerDependenciesMeta.optional: true` **对运行时预检无效** —— 它只读 `peerDependencies` 的 range，不看 optional 标记。
+- 完全**不声明任何 `dsh-*` peer**（只留 `dsh.compatibility.runtime`）也永远不会被预检拦下；本插件选择保留 `>=0.1.6-alpha.1` 这种写法，兼顾"最低内核版本"的语义。
+
+### 如果插件在 0.2.x 上不生效，怎么恢复
+
+把 `peerDependencies` 里的 `dsh-system-prompt` 改成 `">=0.1.6-alpha.1"`（或直接删掉这一项），然后**重启 DSH** —— `link:` 安装是实时的，不需要重装。GitHub / npm 安装的则要等包含此修复的新版本，重新安装一次。
+
+仓库自带一个真实内核冒烟测试：
 
 ```sh
 node test/kernel-smoke.mjs "<DSH 的 node_modules 绝对路径>"
@@ -71,18 +106,22 @@ node test/kernel-smoke.mjs "<DSH 的 node_modules 绝对路径>"
 
 它会加载真实的 `@deepseek-ai/cordis` + `@deepseek-ai/dsh-system-prompt`，挂载本插件并断言 `language:zh-thinking` 段出现在 `assemble()` 结果中。
 
-### 为什么 peer 依赖标了 `optional`
+### 为什么 peer 依赖标了 `optional`（以及它解决不了什么）
 
-Desktop 4.1 的兼容性诊断（`desktop-plugins.lock.json` / 启动日志的 `[plugins] compatibility diagnostic`）会用**应用侧**的模块锚点去解析插件的 `peerDependencies`。`@deepseek-ai/cordis`、`@deepseek-ai/dsh-system-prompt` 这类随 Desktop 一起打包的核心包在它的解析链上取不到版本，于是只要把它们声明成**必需** peer，就会被判成：
+这一节说的是 **Desktop 界面 / `desktop-plugins.lock.json` 那一套判定**，和上面运行时预检是两码事。
+
+Desktop 4.1 的兼容性诊断会用**应用侧**的模块锚点去解析插件的 `peerDependencies`。`@deepseek-ai/cordis`、`@deepseek-ai/dsh-system-prompt` 这类随 Desktop 一起打包的核心包在它的解析链上取不到版本，于是只要把它们声明成**必需** peer，就会被判成：
 
 ```json
 { "status": "incompatible", "reasons": [
   { "code": "peer-missing", "subject": "@deepseek-ai/cordis", "required": "^4.0.1" },
-  { "code": "peer-missing", "subject": "@deepseek-ai/dsh-system-prompt", "required": "^0.1.1-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1" }
+  { "code": "peer-missing", "subject": "@deepseek-ai/dsh-system-prompt", "required": ">=0.1.6-alpha.1" }
 ] }
 ```
 
-标成 `optional` 后：解析得到版本时仍按 semver 范围判定；解析不到时跳过该项，兼容性证据改由 `dsh.compatibility.runtime` 提供（本插件声明为 `>=0.1.1-rc.1 <0.2.0`，对 `0.1.6-alpha.1` 判定通过）。插件真正的运行时契约由 cordis 的 `inject = ["systemPrompt"]` 强制，不会因为标了 optional 而失效。
+标成 `optional` 后：解析得到版本时仍按 semver 范围判定；解析不到时跳过该项，兼容性证据改由 `dsh.compatibility.runtime` 提供。插件真正的运行时契约由 cordis 的 `inject = ["systemPrompt"]` 强制，不会因为标了 optional 而失效。
+
+> ⚠️ 但要记住：**`optional` 只影响 Desktop 这一套诊断，对运行时预检没有任何作用**（预检只读 `peerDependencies` 的 range）。所以 range 本身仍然必须写对 —— 见上面「为什么 peer 范围千万别写 `^`」那一节。
 
 ## 安装
 
@@ -157,6 +196,29 @@ DSH Desktop 4.0 → 4.1 把用户主目录从 `~/.dsh` 迁移到了 `~/.dsh-comm
 | `包名@版本`（npm） | ✅ | ✅ registry | ✅ 自动接回 |
 
 本地目录 / `.tgz` 装的插件在迁移后会被标记为 `failed`（`failureCategory: legacy-source-unsupported`，错误「旧插件来源不是精确 NPM 版本或受支持的 GitHub 来源」）——那是**来源不可寻址**，不是插件代码不兼容。
+
+### 遇到版本门禁 / 构建门禁怎么绕过（0.2.x 实测）
+
+如果安装时报 `Plugin dsh-zh-thinking@0.1.1 is incompatible with dsh 0.2.0-rc.2`（0.1.1 及更早的版本会遇到），官方提供了**确切版本豁免**：
+
+```sh
+dsh plugin --profile desktop allow-version dsh-zh-thinking@0.1.1 --dsh-version 0.2.0-rc.2 --accept-risk
+```
+
+两条实测经验（来自 [issue #1](https://github.com/yingjian666/dsh-zh-thinking/issues/1) 报告者的验证）：
+
+1. **豁免之后必须重新执行一次 `add`** —— 只"按原命令重试"或"重启 dsh"都会因为回滚逻辑再次被拒：
+   ```sh
+   dsh plugin --profile desktop add github:yingjian666/dsh-zh-thinking
+   ```
+2. 从 **git 来源**安装时还可能撞上 pnpm 的构建门禁（git 依赖默认要跑 `prepare`）。**pnpm 11.7.0 实际接受的键名是 `onlyBuiltDependencies`**（写在 profile 的 `pnpm-workspace.yaml` 里），而 DSH 的提示文案里写的是 `allowBuilds` —— 以 pnpm 实际打印的提示为准：
+
+   ```yaml
+   onlyBuiltDependencies:
+     - dsh-zh-thinking
+   ```
+
+> 本插件 **0.1.2 起已放宽版本声明**，正常安装不再需要这些绕过步骤；上面两条留作以后遇到同类插件时的参考。
 
 ### 旧版 DSH（3.x 及更早）
 
