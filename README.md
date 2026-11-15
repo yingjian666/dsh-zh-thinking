@@ -11,7 +11,7 @@
 
 让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 里 Agent 的**内部思考过程**——思维链（chain-of-thought）、逐步规划、工具调用前后的推理、自我审查——始终使用**简体中文**的宿主插件（host plugin）。
 
-> **声明**：本项目参考 / 灵感来自 [wodongx123/dsh-language-control](https://github.com/wodongx123/dsh-language-control)（其 npm 包为 `@deepseek-ai/dsh-language-control`），在其「让 Agent 用中文思考」的思路基础上**独立重写**，并解决了本地目录挂载时的依赖加载问题。两者的关系与差异见下文「[与原插件的关系](#与原插件的关系)」。
+> **声明**：本项目参考 / 灵感来自 [wodongx123/dsh-language-control](https://github.com/wodongx123/dsh-language-control)（其 `package.json` 声明了包名 `@deepseek-ai/dsh-language-control`，但**从未发布到 npm**，只能从 GitHub 安装），在其「让 Agent 用中文思考」的思路基础上**独立重写**，并解决了本地目录挂载时的依赖加载问题。两者的关系与差异见下文「[与原插件的关系](#与原插件的关系)」。
 
 ---
 
@@ -54,17 +54,18 @@ DeepSeek 这类推理模型，其「思考」由同一份系统提示词（syste
 
 ## 与原插件的关系
 
-| 维度 | 原插件 `@deepseek-ai/dsh-language-control` | 本插件 `dsh-zh-thinking` |
+| 维度 | 原插件（`package.json` 声明名 `@deepseek-ai/dsh-language-control`，**未发布到 npm**） | 本插件 `dsh-zh-thinking` |
 |---|---|---|
-| 注入机制 | `systemPrompt.section()`，order `-200`（最顶部） | `systemPrompt.section()`，order `20`（persona 之后） |
+| 注入机制 | `systemPrompt.section()` order `-200`（最顶部），**另加**一个 `systemPrompt.context()` 段 | 仅 `systemPrompt.section()`，order `20`（persona 之后） |
+| 每轮注入字数 | 约 **220 字**（两处合计） | 约 **167 字**（只有一处） |
 | 外部依赖 | 有 peer 依赖（`@deepseek-ai/cordis`、`@deepseek-ai/dsh-host-webserver`） | **零外部依赖**，只依赖 cordis 运行时注入的 `ctx` |
 | 设置面板 | 有（HTTP 路由 + 客户端注入可视化面板） | 无（极简，见[配置](#配置)） |
-| 安装方式 | 必须经 npm（`dsh plugin add @deepseek-ai/dsh-language-control`） | GitHub / 本地目录 / `.tgz` 均可，**无需发布 npm** |
+| 安装方式 | **只能从 GitHub 安装**（声明的 npm 包名从未发布，npm 上查无此包） | GitHub / 本地目录 / `.tgz` 均可，**无需发布 npm** |
 
 **相对原插件主要优化 / 解决的问题：**
 
 1. **零外部依赖，规避「本地目录挂载崩溃」**。当插件通过 `link:` 从 profile / app 的 `node_modules` 树之外的目录挂载时，Node 无法解析插件自身 `import` 的 npm 包（如 `schemastery`），会导致整棵插件树加载失败（fatal plugin-tree load failure）。本插件不 `import` 任何第三方包，只使用宿主运行时提供的服务，因此从任意路径挂载都能正常加载。
-2. **不依赖 npm 发布**。原插件必须先从 npm 安装（且易因包名带不带 `@deepseek-ai/` scope 而装错）；本插件 `git clone` 后即可本地挂载，或直接从 GitHub 安装。
+2. **不依赖 npm 发布**。原插件在 `package.json` 里写了一个带 `@deepseek-ai/` 作用域的包名，但**实际从未发布到 npm**（`npm view` 查无此包），所以只能从 GitHub 装；本插件从一开始就不依赖 npm，`git clone` 后即可本地挂载，或直接从 GitHub 安装。
 3. **极简、易读易审**。单文件、几十行代码，无 HTTP 路由、无客户端面板，行为一目了然。
 
 ## 功能特性
