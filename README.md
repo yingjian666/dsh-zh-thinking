@@ -57,10 +57,14 @@ DeepSeek 这类推理模型，其「思考」由同一份系统提示词（syste
 | 维度 | 原插件（`package.json` 声明名 `@deepseek-ai/dsh-language-control`，**未发布到 npm**） | 本插件 `dsh-zh-thinking` |
 |---|---|---|
 | 注入机制 | `systemPrompt.section()` order `-200`（最顶部），**另加**一个 `systemPrompt.context()` 段 | 仅 `systemPrompt.section()`，order `20`（persona 之后） |
-| 每轮注入字数 | 约 **220 字**（两处合计） | 约 **167 字**（只有一处） |
+| 每轮系统提示注入 | 约 **110 字** | 约 **167 字** |
+| 额外动态上下文 | 有：一段 `[Language Monitor]` 英文提示，作为运行时上下文**在内容变化时**插入一条 user 消息（静态文本通常只在会话开始时插一次，之后随其它 context 变化才重发） | **无** |
 | 外部依赖 | 有 peer 依赖（`@deepseek-ai/cordis`、`@deepseek-ai/dsh-host-webserver`） | **零外部依赖**，只依赖 cordis 运行时注入的 `ctx` |
 | 设置面板 | 有（HTTP 路由 + 客户端注入可视化面板） | 无（极简，见[配置](#配置)） |
 | 安装方式 | **只能从 GitHub 安装**（声明的 npm 包名从未发布，npm 上查无此包） | GitHub / 本地目录 / `.tgz` 均可，**无需发布 npm** |
+
+> 注：本插件每轮注入的字数比原插件**更多**（167 vs 110），因为它额外写明了「允许保留英文专有名词、代码标识符、用户原文」这些边界条件。
+> 这一点上本插件不占优势 —— 如果你更在意每轮成本，可以自行删减 `lib/index.js` 里的 `GUIDANCE_ZH`。
 
 **相对原插件主要优化 / 解决的问题：**
 
