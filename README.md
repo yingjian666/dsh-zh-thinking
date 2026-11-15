@@ -11,7 +11,7 @@
 
 让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 里 Agent 的**内部思考过程**——思维链（chain-of-thought）、逐步规划、工具调用前后的推理、自我审查——始终使用**简体中文**的宿主插件（host plugin）。
 
-> **声明**：本项目参考 / 灵感来自 [wodongx123/dsh-language-control](https://github.com/wodongx123/dsh-language-control)（其 `package.json` 声明了包名 `@deepseek-ai/dsh-language-control`，但**从未发布到 npm**，只能从 GitHub 安装），在其「让 Agent 用中文思考」的思路基础上**独立重写**，并解决了本地目录挂载时的依赖加载问题。两者的关系与差异见下文「[与原插件的关系](#与原插件的关系)」。
+> **声明**：本项目参考 / 灵感来自 [wodongx123/dsh-language-control](https://github.com/wodongx123/dsh-language-control)（其 `package.json` 声明了包名 `@deepseek-ai/dsh-language-control`，但**从未发布到 npm**，只能从 GitHub 安装），在其「让 Agent 用中文思考」的思路基础上**独立重写**，实现方式与原插件不同。两者的区别见下文「[与原插件的区别](#与原插件的区别)」。
 
 ---
 
@@ -52,25 +52,29 @@ DeepSeek 这类推理模型，其「思考」由同一份系统提示词（syste
 
 本插件在启动时向系统提示词注册一段「必须用简体中文思考」的规则，让模型的内部思考保持中文，而最终回答是否默认中文则交给模型自身判断（可保留英文专有名词、代码标识符等）。
 
-## 与原插件的关系
+## 与原插件的区别
 
-| 维度 | 原插件（`package.json` 声明名 `@deepseek-ai/dsh-language-control`，**未发布到 npm**） | 本插件 `dsh-zh-thinking` |
+本插件在 [wodongx123/dsh-language-control](https://github.com/wodongx123/dsh-language-control) 的思路基础上独立重写。两者做的事情相同，实现方式不同：
+
+| 维度 | 原插件 | 本插件 |
 |---|---|---|
-| 注入机制 | `systemPrompt.section()` order `-200`（最顶部），**另加**一个 `systemPrompt.context()` 段 | 仅 `systemPrompt.section()`，order `20`（persona 之后） |
-| 每轮系统提示注入 | 约 **110 字** | 约 **167 字** |
-| 额外动态上下文 | 有：一段 `[Language Monitor]` 英文提示，作为运行时上下文**在内容变化时**插入一条 user 消息（静态文本通常只在会话开始时插一次，之后随其它 context 变化才重发） | **无** |
-| 外部依赖 | 有 peer 依赖（`@deepseek-ai/cordis`、`@deepseek-ai/dsh-host-webserver`） | **零外部依赖**，只依赖 cordis 运行时注入的 `ctx` |
-| 设置面板 | 有（HTTP 路由 + 客户端注入可视化面板） | 无（极简，见[配置](#配置)） |
-| 安装方式 | **只能从 GitHub 安装**（声明的 npm 包名从未发布，npm 上查无此包） | GitHub / 本地目录 / `.tgz` 均可，**无需发布 npm** |
+| 注入机制 | `systemPrompt.section()` order `-200`（最顶部），另加一个 `systemPrompt.context()` 段 | 仅 `systemPrompt.section()`，order `20`（persona 之后） |
+| 每轮系统提示注入 | 约 110 字 | 约 167 字 |
+| 额外动态上下文 | 有：一段 `[Language Monitor]` 英文提示，作为运行时上下文在内容变化时插入一条 user 消息 | 无 |
+| 外部依赖 | 2 个 peer 依赖（`@deepseek-ai/cordis`、`@deepseek-ai/dsh-host-webserver`） | 无 |
+| 服务注入 | `['webServer', 'systemPrompt']` | `['systemPrompt']` |
+| 设置面板 | 有（HTTP 路由 + 客户端面板，可在运行时改提示词文本） | 无（固定文本，改文本需改代码） |
+| 客户端代码 | 有 `lib/client.js`（约 9.7KB） | 无 |
+| 安装方式 | 从 GitHub 安装 | GitHub / 本地目录 / `.tgz` |
+| npm 包名 | `@deepseek-ai/dsh-language-control`（未发布） | `dsh-zh-thinking`（未发布） |
 
-> 注：本插件每轮注入的字数比原插件**更多**（167 vs 110），因为它额外写明了「允许保留英文专有名词、代码标识符、用户原文」这些边界条件。
-> 这一点上本插件不占优势 —— 如果你更在意每轮成本，可以自行删减 `lib/index.js` 里的 `GUIDANCE_ZH`。
+几条差异各自的事实含义：
 
-**相对原插件主要优化 / 解决的问题：**
-
-1. **零外部依赖，规避「本地目录挂载崩溃」**。当插件通过 `link:` 从 profile / app 的 `node_modules` 树之外的目录挂载时，Node 无法解析插件自身 `import` 的 npm 包（如 `schemastery`），会导致整棵插件树加载失败（fatal plugin-tree load failure）。本插件不 `import` 任何第三方包，只使用宿主运行时提供的服务，因此从任意路径挂载都能正常加载。
-2. **不依赖 npm 发布**。原插件在 `package.json` 里写了一个带 `@deepseek-ai/` 作用域的包名，但**实际从未发布到 npm**（`npm view` 查无此包），所以只能从 GitHub 装；本插件从一开始就不依赖 npm，`git clone` 后即可本地挂载，或直接从 GitHub 安装。
-3. **极简、易读易审**。单文件、几十行代码，无 HTTP 路由、无客户端面板，行为一目了然。
+- **注入位置**：原插件在最顶部（order `-200`），本插件在 persona 之后（order `20`）。两者都在系统提示词内，区别只是相对位置。
+- **字数**：本插件每轮多约 57 字，因为额外写明了「允许保留英文专有名词、代码标识符、用户原文」这些边界条件。如果你更在意每轮成本，可以自行删减 `GUIDANCE_ZH`。
+- **依赖**：原插件声明了 `@deepseek-ai/dsh-host-webserver` 这个 peer。当插件通过 `link:` 从 `node_modules` 树之外的目录挂载时，Node 可能解析不到插件自身 `import` 的包，导致整棵插件树加载失败。本插件不 `import` 任何第三方包。
+- **服务注入**：原插件 inject 了 `webServer`，在没有 Web 组件的 composition（如 `dsh-tui`、headless）里不会加载；本插件只 inject `systemPrompt`。
+- **可配置性**：原插件有设置面板，能在运行时改提示词；本插件是固定文本。
 
 ## 功能特性
 
