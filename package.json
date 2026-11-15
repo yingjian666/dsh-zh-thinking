@@ -1,6 +1,6 @@
 {
   "name": "dsh-zh-thinking",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "DSH host plugin: force the agent's chain-of-thought / reasoning / planning / tool-invocation deliberation to stay in Simplified Chinese — 让 Agent 的内部思考（思维链）始终使用简体中文。",
   "type": "module",
   "main": "lib/index.js",
@@ -42,7 +42,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "test:kernel": "node test/kernel-smoke.mjs"
+    "test:kernel": "node test/kernel-smoke.mjs",
+    "test:edge": "node test/edge-cases.mjs"
   },
   "keywords": [
     "deepseek-harness",
