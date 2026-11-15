@@ -279,6 +279,20 @@ Desktop 4.1 的兼容性诊断会用**应用侧**的模块锚点去解析插件�
 
 > ⚠️ 但要记住：**`optional` 只影响 Desktop 这一套诊断，对运行时预检没有任何作用**（预检只读 `peerDependencies` 的 range）。所以 range 本身仍然必须写对 —— 见上面「为什么 peer 范围千万别写 `^`」那一节。
 
+## 关于运行环境：这里说的「DSH Desktop」是什么
+
+本文档里反复提到的 **DeepSeek Harness Desktop**，指的是社区开源项目
+[**ningbainb/deepseek-harness-desktop**](https://github.com/ningbainb/deepseek-harness-desktop)（BSD-3-Clause）发布的桌面客户端。
+
+有一点必须讲清楚：
+
+> **它是社区维护的开源桌面客户端，不是 DeepSeek 官方产品。**
+> DeepSeek 官方目前没有独立的 Desktop 发行版；这个项目把公开的官方 **DSH Runtime、Web UI** 与官方仓库中的 Desktop 能力边界，融合成 Windows / macOS / Linux 的桌面应用，并在独立社区宿主里补齐插件、Skills、任务自动化、Git、远程开发等桌面体验。
+
+本插件的兼容性表、各种「Desktop 5.x / 内核 0.2.x」的说法，都是在这套客户端上实测出来的。
+
+不过插件本身只依赖**内核契约**（`@deepseek-ai/dsh-system-prompt` 的 `section({ name, order, text })`），没有绑定任何桌面客户端特有的 API。所以理论上，任何能加载 DSH 宿主编件的运行方式 —— 官方 CLI、`dsh web`、其他第三方前端 —— 只要内核版本落在兼容性表范围内，都应该能用。只是我没有在那些宿主上逐一实测过。
+
 ## 安装
 
 插件未发布到 npm。下面方式 1 / 2 都**不需要 npm 账号**，也不用手工建目录链接。
