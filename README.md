@@ -580,3 +580,5 @@ DSH 把每条请求的系统提示词由一个 `systemPrompt` 注册表拼装。
 [MIT](./LICENSE) · Copyright (c) 2026 yingjian666
 
 灵感与「中文思考」思路参考自 [wodongx123/dsh-language-control](https://github.com/wodongx123/dsh-language-control)（MIT License，Copyright (c) 2026 wodongx123），特此致谢。
+
+开发与测试环境来自社区项目 [ningbainb/deepseek-harness-desktop](https://github.com/ningbainb/deepseek-harness-desktop)（BSD-3-Clause）—— 本插件从最初开发到每一次内核升级后的兼容性验证，都跑在这套桌面客户端上，特此致谢。
