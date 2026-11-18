@@ -30,7 +30,8 @@
       "patch": "./cordis.patch.yml"
     },
     "compatibility": {
-      "runtime": ">=0.1.1-rc.1 <0.3.0-0"
+      "runtime": ">=0.1.1-rc.1 <0.3.0-0",
+      "desktop": ">=4.1.0 <6.0.0"
     }
   },
   "files": [
